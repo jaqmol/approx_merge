@@ -87,11 +87,12 @@ func (a *ApproxMerge) pickAsComesFromInput(input *bufio.Reader, msgChan chan<- [
 		var msgBytes []byte
 		msgBytes, hardErr = input.ReadBytes('\n')
 		if hardErr != nil {
-			return
+			break
 		}
 		msgChan <- msgBytes
 	}
 	a.processHardInputReadingError(hardErr)
+	close(msgChan)
 }
 
 func (a *ApproxMerge) pickRoundRobin(msgChan chan<- []byte) {
@@ -106,11 +107,12 @@ func (a *ApproxMerge) pickRoundRobin(msgChan chan<- []byte) {
 		var msgBytes []byte
 		msgBytes, hardErr = input.ReadBytes('\n')
 		if hardErr != nil {
-			return
+			break
 		}
 		msgChan <- msgBytes
 	}
 	a.processHardInputReadingError(hardErr)
+	close(msgChan)
 }
 
 func (a *ApproxMerge) processHardInputReadingError(hardErr error) {
