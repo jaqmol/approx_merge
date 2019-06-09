@@ -8,8 +8,6 @@ import (
 	"github.com/jaqmol/approx/processorconf"
 )
 
-// TODO: test & debug
-
 // NewApproxMerge ...
 func NewApproxMerge(conf *processorconf.ProcessorConf) *ApproxMerge {
 	errMsg := &errormsg.ErrorMsg{Processor: "approx_merge"}
