@@ -4,13 +4,13 @@ import (
 	"bufio"
 	"io"
 
-	"github.com/jaqmol/approx/errormsg"
+	"github.com/jaqmol/approx/axmsg"
 	"github.com/jaqmol/approx/processorconf"
 )
 
 // NewApproxMerge ...
 func NewApproxMerge(conf *processorconf.ProcessorConf) *ApproxMerge {
-	errMsg := &errormsg.ErrorMsg{Processor: "approx_merge"}
+	errMsg := &axmsg.Errors{Source: "approx_merge"}
 	pickEnv := conf.Envs["PICK"]
 	var pick Pick
 	if "as_comes" == pickEnv {
@@ -32,7 +32,7 @@ func NewApproxMerge(conf *processorconf.ProcessorConf) *ApproxMerge {
 
 // ApproxMerge ...
 type ApproxMerge struct {
-	errMsg     *errormsg.ErrorMsg
+	errMsg     *axmsg.Errors
 	conf       *processorconf.ProcessorConf
 	output     *bufio.Writer
 	inputs     []*bufio.Reader
