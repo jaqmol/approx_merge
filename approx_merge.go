@@ -1,17 +1,16 @@
 package main
 
 import (
-	"bufio"
 	"io"
 
+	"github.com/jaqmol/approx/axenvs"
 	"github.com/jaqmol/approx/axmsg"
-	"github.com/jaqmol/approx/processorconf"
 )
 
 // NewApproxMerge ...
-func NewApproxMerge(conf *processorconf.ProcessorConf) *ApproxMerge {
+func NewApproxMerge(envs *axenvs.Envs) *ApproxMerge {
 	errMsg := &axmsg.Errors{Source: "approx_merge"}
-	pickEnv := conf.Envs["PICK"]
+	pickEnv := envs.Required["PICK"]
 	var pick Pick
 	if "as_comes" == pickEnv {
 		pick = PickAsComes
@@ -20,11 +19,11 @@ func NewApproxMerge(conf *processorconf.ProcessorConf) *ApproxMerge {
 	} else {
 		errMsg.LogFatal(nil, "Merge expects env PICK to be either as_comes or round_robin, but got %v", pickEnv)
 	}
+	ins, outs := envs.InsOuts()
 	return &ApproxMerge{
 		errMsg:     errMsg,
-		conf:       conf,
-		output:     conf.Outputs[0],
-		inputs:     conf.Inputs,
+		output:     axmsg.NewWriter(&outs[0]),
+		inputs:     axmsg.NewReaders(ins),
 		pick:       pick,
 		inputIndex: 0,
 	}
@@ -33,9 +32,8 @@ func NewApproxMerge(conf *processorconf.ProcessorConf) *ApproxMerge {
 // ApproxMerge ...
 type ApproxMerge struct {
 	errMsg     *axmsg.Errors
-	conf       *processorconf.ProcessorConf
-	output     *bufio.Writer
-	inputs     []*bufio.Reader
+	output     *axmsg.Writer
+	inputs     []axmsg.Reader
 	pick       Pick
 	inputIndex int
 }
@@ -59,14 +57,9 @@ func (a *ApproxMerge) Start() {
 	}
 
 	for msgBytes := range msgChan {
-		_, err := a.output.Write(msgBytes)
+		err := a.output.WriteBytes(msgBytes)
 		if err != nil {
 			a.errMsg.Log(nil, "Error writing response to output: %v", err.Error())
-			return
-		}
-		err = a.output.Flush()
-		if err != nil {
-			a.errMsg.Log(nil, "Error flushing response to output: %v", err.Error())
 			return
 		}
 	}
@@ -75,15 +68,15 @@ func (a *ApproxMerge) Start() {
 func (a *ApproxMerge) pickAsComes(msgChan chan<- []byte) {
 	for i := 0; i < len(a.inputs); i++ {
 		input := a.inputs[i]
-		go a.pickAsComesFromInput(input, msgChan)
+		go a.pickAsComesFromInput(&input, msgChan)
 	}
 }
 
-func (a *ApproxMerge) pickAsComesFromInput(input *bufio.Reader, msgChan chan<- []byte) {
+func (a *ApproxMerge) pickAsComesFromInput(input *axmsg.Reader, msgChan chan<- []byte) {
 	var hardErr error
 	for hardErr == nil {
 		var msgBytes []byte
-		msgBytes, hardErr = input.ReadBytes('\n')
+		msgBytes, hardErr = input.ReadBytes()
 		if hardErr != nil {
 			break
 		}
@@ -103,7 +96,7 @@ func (a *ApproxMerge) pickRoundRobin(msgChan chan<- []byte) {
 		a.inputIndex++
 
 		var msgBytes []byte
-		msgBytes, hardErr = input.ReadBytes('\n')
+		msgBytes, hardErr = input.ReadBytes()
 		if hardErr != nil {
 			break
 		}
